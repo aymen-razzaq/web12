@@ -891,7 +891,7 @@ footer { text-align: center; padding: 40px; color: var(--muted); }
     nav button { margin: 0 10px; font-size: 13px; }
     
     .home-hero { padding: 60px 0; }
-    .home-hero h1 { font-size: 42px; letter-spacing: -1.5px; }
+    .home-hero h1 { font-size: 34px; letter-spacing: -1.5px; }
     .home-hero p { font-size: 16px; }
     
     .hero { padding: 40px 16px; border-radius: 24px; margin-bottom: 20px; }

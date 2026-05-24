@@ -130,40 +130,7 @@ function handleFirestoreError(error, operationType, path) {
 }
 
 // DATA CONSTANTS
-const SHOPS = [
-    {
-        id: "shop_001",
-        name: "Urban Streetwear Co.",
-        logo: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200",
-        hero: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200",
-        pass: "11",
-        phone: "+964000000001"
-    },
-    {
-        id: "shop_002",
-        name: "Minimalist Wardrobe",
-        logo: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=200",
-        hero: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1200",
-        pass: "minimal88",
-        phone: "+964000000002"
-    },
-    {
-        id: "shop_003",
-        name: "Vintage Vault",
-        logo: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200",
-        hero: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200",
-        pass: "retro99",
-        phone: "+964000000003"
-    },
-    {
-        id: "shop_004",
-        name: "Zen Athleisure",
-        logo: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=200",
-        hero: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200",
-        pass: "zen123",
-        phone: "+964000000004"
-    }
-];
+const SHOPS = [];
 
 const MASTER_KEY = "1111";
 
