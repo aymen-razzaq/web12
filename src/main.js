@@ -57,6 +57,10 @@ window.closeZoomModal = (...args) => closeZoomModal(...args);
 window.zoomImage = (...args) => zoomImage(...args);
 window.removeProductPreviewImage = (...args) => removeProductPreviewImage(...args);
 window.setMainImage = (...args) => setMainImage(...args);
+window.openContactModal = (...args) => openContactModal(...args);
+window.closeContactModal = (...args) => closeContactModal(...args);
+window.openTermsModal = (...args) => openTermsModal(...args);
+window.closeTermsModal = (...args) => closeTermsModal(...args);
 
 const firebaseConfig = {
   "projectId": "gen-lang-client-0293781004",
@@ -245,6 +249,8 @@ const TRANSLATIONS = {
         updateProduct: "Update Product",
         description: "Description",
         tags: "Tags (Comma separated)",
+        masterTabOrders: "Incoming Requests",
+        masterTabShops: "Manage Shops",
     },
     ar: {
         storeSettings: "إعدادات المتجر",
@@ -334,9 +340,9 @@ const TRANSLATIONS = {
         terms: "شروط الخدمة",
         footerText: "إعادة تعريف التجزئة المستقلة للعصر الحديث.",
         all: "الكل",
-        men: "الرجال",
-        women: "النساء",
-        kids: "الأطفال",
+        men: "رجالي",
+        women: "نسائي",
+        kids: "أطفال",
         statusAccepted: "مقبول",
         statusRefused: "مرفوض",
         phLabel: "هاتف:",
@@ -356,6 +362,8 @@ const TRANSLATIONS = {
         updateProduct: "تحديث المنتج",
         description: "الوصف",
         tags: "الوسوم (مفصولة بفاصلة)",
+        masterTabOrders: "الطلبّات الواردة",
+        masterTabShops: "إدارة المتاجر",
     }
 
 };
@@ -711,6 +719,14 @@ function updateStaticTranslations() {
         if(masterDashboard) {
             const h2 = masterDashboard.querySelector('h2');
             if (h2) h2.innerText = t.commandCenter;
+            
+            const tabOrders = document.getElementById('master-tab-orders');
+            const tabShops = document.getElementById('master-tab-shops');
+            if (tabOrders) tabOrders.innerText = t.masterTabOrders;
+            if (tabShops) tabShops.innerText = t.masterTabShops;
+            
+            const logoutBtn = masterDashboard.querySelector('.logout-btn');
+            if (logoutBtn) logoutBtn.innerText = t.logout;
         }
         
         // Toast
@@ -762,6 +778,9 @@ function updateStaticTranslations() {
                 flp[1].innerText = t.terms;
             }
             if (fb) fb.innerText = `© 2026 ${t.brandName}. ${t.rights}`;
+            
+            updateContactModalTranslations();
+            updateTermsModalTranslations();
         }
     } catch (e) {
         console.error("Error in updateStaticTranslations:", e);
@@ -1105,6 +1124,91 @@ function openBuyModal(productId) {
     }
 }
 
+function openContactModal() {
+    updateContactModalTranslations();
+    document.getElementById('contact-modal').classList.remove('hidden');
+}
+
+function closeContactModal() {
+    document.getElementById('contact-modal').classList.add('hidden');
+}
+
+function openTermsModal() {
+    updateTermsModalTranslations();
+    document.getElementById('terms-modal').classList.remove('hidden');
+}
+
+function closeTermsModal() {
+    document.getElementById('terms-modal').classList.add('hidden');
+}
+
+function updateContactModalTranslations() {
+    const title = document.getElementById('contact-modal-title');
+    const phoneLabel = document.getElementById('contact-phone-label');
+    const emailLabel = document.getElementById('contact-email-label');
+    const closeBtn = document.getElementById('contact-close-btn');
+    
+    if (window.currentLang === 'ar') {
+        if (title) title.innerText = "اتصل بنا";
+        if (phoneLabel) phoneLabel.innerText = "رقم الهاتف";
+        if (emailLabel) emailLabel.innerText = "البريد الإلكتروني";
+        if (closeBtn) closeBtn.innerText = "إغلاق";
+    } else {
+        if (title) title.innerText = "Contact Us";
+        if (phoneLabel) phoneLabel.innerText = "Phone Number";
+        if (emailLabel) emailLabel.innerText = "Email Address";
+        if (closeBtn) closeBtn.innerText = "Close";
+    }
+}
+
+function updateTermsModalTranslations() {
+    const title = document.getElementById('terms-modal-title');
+    const content = document.getElementById('terms-content-area');
+    const agreeBtn = document.getElementById('terms-agree-btn');
+    
+    if (window.currentLang === 'ar') {
+        if (title) title.innerText = "شروط الخدمة";
+        if (agreeBtn) agreeBtn.innerText = "موافق";
+        if (content) {
+            content.innerHTML = `
+                <p style="margin-bottom: 12px; text-align: right; direction: rtl;">مرحباً بكم في <strong>أنيق</strong>. باستخدامك لمنصتنا، فإنك توافق على الالتزام بشروط الخدمة التالية.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000; text-align: right; direction: rtl;">1. استخدام المنصة العام</h4>
+                <p style="margin-bottom: 12px; text-align: right; direction: rtl;">يوفر أنيق سوقًا للمتاجر المستقلة لربط العلامات التجارية المستقلة والبائعين مباشرة مع الزبائن. تدار جميع المنتجات والعناصر والصفقات من قبل المتاجر المعنية بها.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000; text-align: right; direction: rtl;">2. المعاملات المستقلة</h4>
+                <p style="margin-bottom: 12px; text-align: right; direction: rtl;">يرسل الزبائن طلبات الشراء إلى المتاجر مباشرة. تقع مسؤولية تجهيز الطلبات، التوصيل، وجودة المنتجات على عاتق المتجر البائع بشكل كامل، حيث يمثل أنيق وسيطاً اتصالياً ميسراً وموثوقاً.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000; text-align: right; direction: rtl;">3. مسؤولية الحساب</h4>
+                <p style="margin-bottom: 12px; text-align: right; direction: rtl;">يجب على البائعين والزبائن تقديم معلومات دقيقة تشمل رقم هاتف حقيقي وموقع توصيل افتراضي. تقع على عاتقكم المسؤولية الكاملة في الحفاظ على سرية بيانات حساباتكم.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000; text-align: right; direction: rtl;">4. السلوك المقبول والمنتجات</h4>
+                <p style="margin-bottom: 12px; text-align: right; direction: rtl;">يتعهد البائعون بنشر منتجات أصلية، متوافقة مع القوانين، ومنتقاة بعناية. المنتجات المقلدة أو الاحتيالية قد يتم إلغاء تفعيلها من قبل إدارة النظام.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000; text-align: right; direction: rtl;">5. الاتصال والاستفسارات</h4>
+                <p style="margin-bottom: 12px; text-align: right; direction: rtl;">إذا كانت لديك أي استفسارات بخصوص هذه الشروط أو تحتاج للدعم، يمكنك التواصل مع منسق المنصة عبر الهاتف على الرقم <a href="tel:07759530163">07759530163</a> أو البريد الإلكتروني <a href="mailto:nsshshststs@gmail.com">nsshshststs@gmail.com</a>.</p>
+            `;
+            content.style.textAlign = 'right';
+            content.style.direction = 'rtl';
+        }
+    } else {
+        if (title) title.innerText = "Terms of Service";
+        if (agreeBtn) agreeBtn.innerText = "I Agree";
+        if (content) {
+            content.innerHTML = `
+                <p style="margin-bottom: 12px;">Welcome to <strong>aneeq</strong>. By accessing our platform, you agree to comply with and be bound by the following Terms of Service.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000;">1. General Platform Usage</h4>
+                <p style="margin-bottom: 12px;">aneeq provides an independent boutique marketplace connecting independent brands and sellers directly with customers. All listings, items, and transactions are managed by their respective stores.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000;">2. Independent Transactions</h4>
+                <p style="margin-bottom: 12px;">Customers request purchase orders directly from individual stores. The fulfillment, delivery, and quality of items are the sole responsibility of the selling store. aneeq acts as a connecting facilitator.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000;">3. Account Responsibility</h4>
+                <p style="margin-bottom: 12px;">Sellers and customers must provide accurate information, including their real phone number and default delivery location. You are solely responsible for maintaining the confidentiality of your account credentials.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000;">4. Acceptable Behavior & Listings</h4>
+                <p style="margin-bottom: 12px;">Sellers agree to only list authentic, legally compliant, and carefully curated fashion/athletic unique items. Copied, fraudulent, or general mass-market listings that violate copyright may be deactivated by the system administrators.</p>
+                <h4 style="font-weight: 700; margin-top: 15px; margin-bottom: 5px; color: #000;">5. Contact and Enquiries</h4>
+                <p style="margin-bottom: 12px;">If you have any questions about these terms or need dispute support, please reach out to our platform coordinator via phone at <a href="tel:07759530163">07759530163</a> or email at <a href="mailto:nsshshststs@gmail.com">nsshshststs@gmail.com</a>.</p>
+            `;
+            content.style.textAlign = 'left';
+            content.style.direction = 'ltr';
+        }
+    }
+}
+
 function closeModal() {
     document.getElementById('buy-modal').classList.add('hidden');
 }
@@ -1113,11 +1217,11 @@ async function submitOrder() {
     if (!db) return;
     const t = TRANSLATIONS[currentLang];
     const location = document.getElementById('customer-location').value;
-    if(!location) return alert(currentLang === 'ar' ? "يرجى إدخال الموقع" : "Please enter location");
+    if(!location) return showToast(currentLang === 'ar' ? "يرجى إدخال الموقع" : "Please enter location");
     
     // Check if logged in to get user details
     if(!loggedInUser) {
-        alert(currentLang === 'ar' ? "يرجى تسجيل الدخول أولاً" : "Please login to place an order");
+        showToast(currentLang === 'ar' ? "يرجى تسجيل الدخول أولاً" : "Please login to place an order");
         showView('account');
         closeModal();
         return;
@@ -1226,7 +1330,7 @@ function toggleAuthMode(mode) {
 async function handleRegister() {
     console.log("handleRegister started");
     if (!db) {
-        alert("System error: Database not connected. Please refresh.");
+        showToast(currentLang === 'ar' ? "خطأ في النظام: قاعدة البيانات غير متصلة. يرجى التحديث." : "System error: Database not connected. Please refresh.");
         return;
     }
     
@@ -1291,7 +1395,7 @@ async function handleRegister() {
 async function handleLogin() {
     console.log("handleLogin started");
     if (!db) {
-        alert("System error: Database not connected. Please refresh.");
+        showToast(currentLang === 'ar' ? "خطأ في النظام: قاعدة البيانات غير متصلة. يرجى التحديث." : "System error: Database not connected. Please refresh.");
         return;
     }
     
@@ -1850,7 +1954,7 @@ async function addNewProduct() {
     const desc = document.getElementById('p-desc').value;
     const imgs = currentBase64Images;
     
-    if(!name || !price || imgs.length === 0) return alert(t.fillFields);
+    if(!name || !price || imgs.length === 0) return showToast(t.fillFields);
     
     const productData = {
         name,
@@ -1922,7 +2026,7 @@ async function saveProductEdit() {
     const price = document.getElementById('edit-p-price').value;
     const desc = document.getElementById('edit-p-desc').value.trim();
     
-    if(!name || !price) return alert(TRANSLATIONS[currentLang].fillFields);
+    if(!name || !price) return showToast(TRANSLATIONS[currentLang].fillFields);
     
     try {
         const updateData = {
@@ -2040,7 +2144,7 @@ function handleMasterLogin() {
         document.getElementById('master-dashboard').classList.remove('hidden');
         renderMasterOrders();
     } else {
-        alert(t.accessDenied);
+        showToast(t.accessDenied);
     }
 }
 
@@ -2051,9 +2155,25 @@ function renderMasterOrders() {
     const t = TRANSLATIONS[currentLang];
     const container = document.getElementById('master-orders-list');
     const q = query(collection(db, "orders"));
+    let isInitial = true;
     masterOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
         let orders = [];
         snapshot.forEach(doc => orders.push({ ...doc.data(), id: doc.id }));
+        
+        // Render the Recharts AreaChart using the global callback
+        if (typeof window.updateMasterChart === 'function') {
+            window.updateMasterChart(orders, currentLang);
+        }
+
+        // Detect newly added orders in real-time
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added' && !isInitial) {
+                const docData = change.doc.data();
+                showOrderToast(docData);
+            }
+        });
+        isInitial = false;
+
         document.getElementById('master-stats').innerHTML = `
             <div style="display:flex; gap:20px; margin-top:20px;">
                 <div>${t.totalLabel}${orders.length}</div>
@@ -2199,6 +2319,87 @@ async function deleteOrderByID(orderId) {
         await deleteDoc(doc(db, "orders", orderId));
     } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+    }
+}
+
+function showOrderToast(order) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    
+    const isAr = currentLang === 'ar';
+    const title = isAr ? 'طلب جديد وارد!' : 'New Order Received!';
+    const bodyText = isAr 
+        ? `طلب جديد لـ <strong>${order.productName || 'منتج'}</strong> من متجر <strong>${order.shopName || 'غير معروف'}</strong>`
+        : `New request for <strong>${order.productName || 'product'}</strong> from <strong>${order.shopName || 'unknown store'}</strong>`;
+
+    // SVG icon for shopping bag
+    const iconSvg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+            <path d="M3 6h18"></path>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+    `;
+
+    // SVG icon for close
+    const closeSvg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    `;
+
+    toast.innerHTML = `
+        <div class="toast-icon">
+            ${iconSvg}
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">
+                <span>${title}</span>
+                <button class="toast-close" aria-label="Close">
+                    ${closeSvg}
+                </button>
+            </div>
+            <p class="toast-body">${bodyText}</p>
+        </div>
+        <div class="toast-progress" style="animation-duration: 5000ms;"></div>
+    `;
+
+    container.appendChild(toast);
+
+    // Force reflow and show toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 50);
+
+    // Auto dismiss
+    const dismissTimeout = setTimeout(() => {
+        dismissToast();
+    }, 5000);
+
+    const closeBtn = toast.querySelector('.toast-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            clearTimeout(dismissTimeout);
+            dismissToast();
+        });
+    }
+
+    function dismissToast() {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode === container) {
+                container.removeChild(toast);
+            }
+        }, 500); // Wait for transition out
     }
 }
 

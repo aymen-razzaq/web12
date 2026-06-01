@@ -7,6 +7,7 @@
     --text: #2D241E;
     --muted: #8C7E74;
     --border: #E8E2DE;
+    --font-ar: 'Cairo', sans-serif;
 }
 
 [lang="ar"] {
@@ -292,9 +293,12 @@ nav button:hover { color: var(--accent); }
     display: flex;
     justify-content: center;
     gap: 12px;
+    margin-top: 24px;
     margin-bottom: 48px;
+    position: relative;
+    z-index: 10;
     overflow-x: auto;
-    padding: 10px 20px 20px;
+    padding: 18px 20px 20px;
     scrollbar-width: none; /* Firefox */
 }
 
@@ -316,6 +320,8 @@ nav button:hover { color: var(--accent); }
     white-space: nowrap;
     color: #444;
     box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+    position: relative;
+    z-index: 5;
 }
 
 .filter-btn:hover {
@@ -323,6 +329,7 @@ nav button:hover { color: var(--accent); }
     transform: translateY(-3px);
     box-shadow: 0 8px 15px rgba(0,0,0,0.06);
     color: #000;
+    z-index: 15;
 }
 
 .filter-btn.active {
@@ -331,6 +338,16 @@ nav button:hover { color: var(--accent); }
     border-color: var(--accent);
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(179, 139, 109, 0.2);
+    z-index: 15;
+}
+
+[lang="ar"] .filter-btn {
+    font-family: var(--font-ar);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+    font-feature-settings: "ss01", "cv01";
+    text-shadow: none;
 }
 
 /* Shop Settings UI */
@@ -895,7 +912,8 @@ footer { text-align: center; padding: 40px; color: var(--muted); }
     .home-hero p { font-size: 16px; }
     
     .hero { padding: 40px 16px; border-radius: 24px; margin-bottom: 20px; }
-    .hero h1 { font-size: 32px; letter-spacing: -1px; }
+    #view-marketplace .hero { padding: 30px 16px; margin-bottom: 15px; border-radius: 24px; }
+    .hero h1, #view-marketplace .hero h1, #mp-hero-title { font-size: 32px; letter-spacing: -1px; }
     .hero p { font-size: 14px; }
     
     .feed-header { flex-direction: column; align-items: center; gap: 10px; text-align: center; margin-top: 20px; padding-top: 40px; }
@@ -950,7 +968,7 @@ footer { text-align: center; padding: 40px; color: var(--muted); }
     
     [dir="rtl"] nav button { margin: 0 10px; }
     
-    .filter-bar { padding: 0 16px 16px; margin-bottom: 12px; }
+    .filter-bar { padding: 12px 16px 16px; margin-top: 12px; margin-bottom: 12px; }
     .filter-btn { padding: 8px 16px; font-size: 11px; }
 }
 
@@ -1000,3 +1018,128 @@ input[type="file"] {
     display: flex;
     justify-content: center;
 }
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 380px;
+    width: calc(100vw - 48px);
+    pointer-events: none;
+}
+
+[dir="rtl"] .toast-container {
+    right: auto;
+    left: 24px;
+}
+
+.toast-notification {
+    background: #2D241E;
+    border: 1px solid #3d3128;
+    color: #FAF8F6;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+}
+
+[dir="rtl"] .toast-notification {
+    transform: translateX(-120%);
+}
+
+.toast-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-icon {
+    background: rgba(179, 139, 109, 0.15);
+    border: 1px solid rgba(179, 139, 109, 0.3);
+    color: #B38B6D;
+    padding: 10px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toast-body {
+    font-size: 13px;
+    color: #CBBAB0;
+    line-height: 1.4;
+    margin: 6px 0 0 0;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #8C7E74;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+[dir="rtl"] .toast-close {
+    margin-left: 0;
+    margin-right: 8px;
+}
+
+.toast-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: #B38B6D;
+    width: 100%;
+    transform-origin: left;
+    animation: toastProgress linear forwards;
+}
+
+@keyframes toastProgress {
+    to {
+        transform: scaleX(0);
+    }
+}
+
