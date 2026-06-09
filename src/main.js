@@ -715,8 +715,9 @@ function updateStaticTranslations() {
         // Master Admin
         const masterLogin = document.getElementById('master-login');
         if(masterLogin) {
-            const h2 = masterLogin.querySelector('h2');
-            const p = masterLogin.querySelector('p');
+            const formContainer = masterLogin.querySelector('.auth-form-container');
+            const h2 = formContainer ? formContainer.querySelector('h2') : masterLogin.querySelector('h2');
+            const p = formContainer ? formContainer.querySelector('p') : masterLogin.querySelector('p');
             const btn = masterLogin.querySelector('button');
             const mpk = document.getElementById('master-pass');
             if (h2) h2.innerText = t.masterLogin;

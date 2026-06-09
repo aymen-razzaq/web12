@@ -379,10 +379,18 @@
         <!-- 4. MASTER ADMIN VIEW -->
         <section id="view-master" class="view hidden">
             <div id="master-login" class="auth-card danger">
-                <h2>أنيق ماستر</h2>
-                <p>وصول مصرح به فقط.</p>
-                <input type="password" id="master-pass" placeholder="مفتاح الماستر">
-                <button onclick="handleMasterLogin()">التحقق من الهوية</button>
+                <div class="auth-hero" style="background-image: url('https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1000');">
+                    <div class="auth-hero-content">
+                        <h3 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 8px;">أنيق ماستر</h3>
+                        <p style="font-size: 14px; opacity: 0.8;">Command & Control Center</p>
+                    </div>
+                </div>
+                <div class="auth-form-container">
+                    <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 8px;">أنيق ماستر</h2>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 24px;">وصول مصرح به فقط.</p>
+                    <input type="password" id="master-pass" placeholder="مفتاح الماستر">
+                    <button class="btn-primary" onclick="handleMasterLogin()">التحقق من الهوية</button>
+                </div>
             </div>
             <div id="master-dashboard" class="hidden">
                 <div class="master-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
