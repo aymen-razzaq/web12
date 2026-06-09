@@ -52,6 +52,11 @@ window.saveProductEdit = (...args) => saveProductEdit(...args);
 window.closeProductEditModal = (...args) => closeProductEditModal(...args);
 window.addTagToProduct = (...args) => addTagToProduct(...args);
 window.removeTagFromProduct = (...args) => removeTagFromProduct(...args);
+window.openMasterShopModal = (...args) => openMasterShopModal(...args);
+window.closeMasterShopModal = (...args) => closeMasterShopModal(...args);
+window.previewMasterShopLogo = (...args) => previewMasterShopLogo(...args);
+window.previewMasterShopHero = (...args) => previewMasterShopHero(...args);
+window.saveMasterShop = (...args) => saveMasterShop(...args);
 
 window.closeZoomModal = (...args) => closeZoomModal(...args);
 window.zoomImage = (...args) => zoomImage(...args);
@@ -230,6 +235,7 @@ const TRANSLATIONS = {
         men: "Men",
         women: "Women",
         kids: "Kids",
+        shoes: "Shoes",
         statusAccepted: "Accepted",
         statusRefused: "Refused",
         phLabel: "PH:",
@@ -343,6 +349,7 @@ const TRANSLATIONS = {
         men: "رجالي",
         women: "نسائي",
         kids: "أطفال",
+        shoes: "أحذية",
         statusAccepted: "مقبول",
         statusRefused: "مرفوض",
         phLabel: "هاتف:",
@@ -625,6 +632,7 @@ function updateStaticTranslations() {
             if (cat === 'Men') btn.innerText = t.men;
             if (cat === 'Women') btn.innerText = t.women;
             if (cat === 'Kids') btn.innerText = t.kids;
+            if (cat === 'Shoes') btn.innerText = t.shoes;
         });
 
         // Marketplace
@@ -695,11 +703,12 @@ function updateStaticTranslations() {
             }
 
             const catSelect = document.getElementById('p-cat');
-            if (catSelect && catSelect.options.length >= 4) {
+            if (catSelect && catSelect.options.length >= 5) {
                 catSelect.options[0].text = currentLang === 'ar' ? 'اختر الفئة' : 'Select Category';
                 catSelect.options[1].text = t.men;
                 catSelect.options[2].text = t.women;
                 catSelect.options[3].text = t.kids;
+                catSelect.options[4].text = t.shoes;
             }
         }
         
@@ -824,12 +833,26 @@ function showView(viewId, skipState = false) {
 function initSettingsListener() {
     if (!db) return;
     onSnapshot(collection(db, "shop_settings"), (snapshot) => {
+        const tempShops = [];
         snapshot.forEach(doc => {
             const data = doc.data();
             if (data.shopId) {
                 shopSettingsOverrides[data.shopId] = data;
+                tempShops.push({
+                    id: data.shopId,
+                    name: data.name || "Unnamed Shop",
+                    phone: data.phone || "",
+                    pass: data.pass || data.password || "",
+                    category: data.category || "",
+                    logo: data.logo || "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200",
+                    hero: data.hero || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200",
+                });
             }
         });
+        
+        // Mutate SHOPS global array
+        SHOPS.length = 0;
+        SHOPS.push(...tempShops);
         
         // Update UI dynamically
         if (loggedInShopId) {
@@ -1677,6 +1700,8 @@ let currentEditProductTags = []; // Interactive tags for editing product
 let imageCropQueue = []; // Queue for multiple image cropping
 let currentStoreLogo = null;
 let currentStoreHero = null;
+let currentMasterShopLogo = null;
+let currentMasterHero = null;
 
 let cropperInstance = null;
 let cropperType = null; // 'product', 'logo', 'hero'
@@ -1738,6 +1763,14 @@ async function applyCrop() {
         }
         const removeBtn = document.getElementById('remove-hero-btn');
         if (removeBtn) removeBtn.classList.remove('hidden');
+    } else if (cropperType === 'masterLogo') {
+        currentMasterShopLogo = croppedImage;
+        const img = document.getElementById('m-shop-logo-img');
+        if (img) img.src = croppedImage;
+    } else if (cropperType === 'masterHero') {
+        currentMasterHero = croppedImage;
+        const img = document.getElementById('m-shop-hero-img');
+        if (img) img.src = croppedImage;
     }
     
     closeCropModal();
@@ -2258,25 +2291,42 @@ function renderMasterShops() {
     const list = document.getElementById('master-shops-list');
     if (!list) return;
 
+    if (SHOPS.length === 0) {
+        list.innerHTML = `<div style="text-align: center; color: #666; padding: 40px;">No registered stores found / لا يوجد متاجر مسجلة</div>`;
+        return;
+    }
+
     list.innerHTML = SHOPS.map(shop => {
         const settings = shopSettingsOverrides[shop.id] || {};
         const shopName = settings.name || shop.name;
         const currentCat = settings.category || "";
+        const shopLogo = settings.logo || shop.logo || "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200";
+        const shopPhone = settings.phone || shop.phone || "";
+        const shopPass = settings.pass || settings.password || shop.pass || "";
         
         return `
-            <div class="order-item" style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; padding: 20px; background: rgba(255,255,255,0.05);">
-                <div>
-                    <h3 style="margin: 0; font-size: 18px;">${shopName}</h3>
-                    <p style="font-size: 12px; color: #999; margin-top: 5px;">ID: ${shop.id} | Phone: ${shop.phone}</p>
+            <div class="order-item" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border: 1px solid #333; padding: 20px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img src="${shopLogo}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #444;" alt="logo" onerror="this.src='https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200'">
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: #fff;">${shopName}</h3>
+                        <p style="font-size: 11px; color: #888; margin: 3px 0 0 0;">
+                            ID: <strong style="color: #ccc;">${shop.id}</strong> | 
+                            Phone: <strong style="color: #ccc;">${shopPhone}</strong> | 
+                            Pass: <strong style="color: #ccc;">${shopPass}</strong>
+                        </p>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <select id="cat-select-${shop.id}" style="background: #222; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 8px; font-size: 14px;">
-                        <option value="" ${!currentCat ? 'selected' : ''}>Uncategorized (Hidden)</option>
-                        <option value="Men" ${currentCat === 'Men' ? 'selected' : ''}>Men</option>
-                        <option value="Women" ${currentCat === 'Women' ? 'selected' : ''}>Women</option>
-                        <option value="Kids" ${currentCat === 'Kids' ? 'selected' : ''}>Kids</option>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="cat-select-${shop.id}" style="background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 8px; font-size: 13px;">
+                        <option value="" ${!currentCat ? 'selected' : ''}>Uncategorized (Hidden) / غير مصنف</option>
+                        <option value="Men" ${currentCat === 'Men' ? 'selected' : ''}>Men / رجالي</option>
+                        <option value="Women" ${currentCat === 'Women' ? 'selected' : ''}>Women / نسائي</option>
+                        <option value="Kids" ${currentCat === 'Kids' ? 'selected' : ''}>Kids / أطفال</option>
+                        <option value="Shoes" ${currentCat === 'Shoes' ? 'selected' : ''}>Shoes / أحذية</option>
                     </select>
-                    <button class="btn-primary" onclick="updateShopCategory('${shop.id}')" style="padding: 8px 15px; font-size: 12px;">Save</button>
+                    <button class="btn-primary" onclick="updateShopCategory('${shop.id}')" style="padding: 8px 15px; font-size: 12px; background: #333; color: #fff; border-radius: 8px; border: 1px solid #444; cursor: pointer;">Save Cat</button>
+                    <button class="btn-primary" onclick="openMasterShopModal('edit', '${shop.id}')" style="padding: 8px 15px; font-size: 12px; background: #fff; color: #000; border-radius: 8px; border: none; font-weight: 500; cursor: pointer;">Edit / Photos</button>
                 </div>
             </div>
         `;
@@ -2297,7 +2347,172 @@ async function updateShopCategory(shopId) {
         renderMasterShops();
     } catch (error) {
         handleFirestoreError(error, OperationType.WRITE, `shop_settings/${shopId}`);
-        showToast("Error update category");
+        showToast("Error updating category");
+    }
+}
+
+async function openMasterShopModal(mode, shopId = '') {
+    const modal = document.getElementById('master-shop-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+
+    const titleEl = document.getElementById('master-shop-modal-title');
+    const modeInput = document.getElementById('m-shop-mode');
+    const idInput = document.getElementById('m-shop-id');
+    const nameInput = document.getElementById('m-shop-name');
+    const phoneInput = document.getElementById('m-shop-phone');
+    const passInput = document.getElementById('m-shop-pass');
+    const catSelect = document.getElementById('m-shop-cat');
+    const logoImg = document.getElementById('m-shop-logo-img');
+    const heroImg = document.getElementById('m-shop-hero-img');
+
+    currentMasterShopLogo = null;
+    currentMasterHero = null;
+
+    if (mode === 'add') {
+        if (titleEl) titleEl.innerText = currentLang === 'ar' ? 'إضافة متجر جديد' : 'Add New Store';
+        if (modeInput) modeInput.value = 'add';
+        if (idInput) {
+            idInput.value = '';
+            idInput.disabled = false;
+        }
+        if (nameInput) nameInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (passInput) passInput.value = '';
+        if (catSelect) catSelect.value = '';
+        if (logoImg) logoImg.src = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200';
+        if (heroImg) heroImg.src = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200';
+    } else {
+        if (titleEl) titleEl.innerText = currentLang === 'ar' ? 'تعديل بيانات المتجر' : 'Edit Store Details / Photos';
+        if (modeInput) modeInput.value = 'edit';
+        
+        const shop = SHOPS.find(s => s.id === shopId);
+        if (shop) {
+            const settings = shopSettingsOverrides[shop.id] || {};
+            if (idInput) {
+                idInput.value = shop.id;
+                idInput.disabled = true;
+            }
+            if (nameInput) nameInput.value = settings.name || shop.name || '';
+            if (phoneInput) phoneInput.value = settings.phone || shop.phone || '';
+            if (passInput) passInput.value = settings.pass || settings.password || shop.pass || '';
+            if (catSelect) catSelect.value = settings.category || shop.category || '';
+            
+            const currentLogo = settings.logo || shop.logo || 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200';
+            const currentHero = settings.hero || shop.hero || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200';
+            
+            if (logoImg) logoImg.src = currentLogo;
+            if (heroImg) heroImg.src = currentHero;
+            
+            currentMasterShopLogo = currentLogo;
+            currentMasterHero = currentHero;
+        }
+    }
+}
+
+function closeMasterShopModal() {
+    const modal = document.getElementById('master-shop-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+    }
+}
+
+async function previewMasterShopLogo(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            openCropper(e.target.result, 'masterLogo');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function previewMasterShopHero(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            openCropper(e.target.result, 'masterHero');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function saveMasterShop() {
+    const mode = document.getElementById('m-shop-mode').value;
+    const shopId = document.getElementById('m-shop-id').value.trim().toLowerCase();
+    const name = document.getElementById('m-shop-name').value.trim();
+    const phone = normalizePhone(document.getElementById('m-shop-phone').value.trim());
+    const pass = document.getElementById('m-shop-pass').value.trim();
+    const category = document.getElementById('m-shop-cat').value;
+
+    if (!shopId || !name || !phone || !pass) {
+        showToast(currentLang === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill in all required fields.');
+        return;
+    }
+
+    const isIdValid = /^[a-z0-9_-]+$/.test(shopId);
+    if (!isIdValid) {
+        showToast(currentLang === 'ar' ? 'معرف غير صالح' : 'Invalid ID. Use lowercase letters, numbers, and dashes only.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-m-save-shop');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = currentLang === 'ar' ? 'جاري الحفظ...' : 'Saving...';
+
+    try {
+        const shopSettingsData = {
+            shopId: shopId,
+            name: name,
+            phone: phone,
+            pass: pass,
+            password: pass,
+            category: category,
+            updatedAt: serverTimestamp()
+        };
+
+        if (currentMasterShopLogo) {
+            shopSettingsData.logo = currentMasterShopLogo;
+        }
+        if (currentMasterHero) {
+            shopSettingsData.hero = currentMasterHero;
+        }
+
+        // Save shop settings
+        await setDoc(doc(db, "shop_settings", shopId), shopSettingsData, { merge: true });
+
+        // Save user doc for login
+        const userRef = doc(db, "users", phone);
+        await setDoc(userRef, {
+            name: name,
+            phone: phone,
+            password: pass,
+            shopId: shopId,
+            location: "",
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        // Update local object overrides cache
+        shopSettingsOverrides[shopId] = {
+            ...shopSettingsOverrides[shopId],
+            ...shopSettingsData
+        };
+
+        showToast(currentLang === 'ar' ? 'تم حفظ المتجر بنجاح!' : 'Store saved successfully!');
+        closeMasterShopModal();
+        renderMasterShops();
+    } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `shop_settings/master/${shopId}`);
+        showToast(currentLang === 'ar' ? 'حدث خطأ أثناء الحفظ' : 'Error saving store information.');
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 }
 
