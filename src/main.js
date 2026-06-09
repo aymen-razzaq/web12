@@ -58,6 +58,7 @@ window.previewMasterShopLogo = (...args) => previewMasterShopLogo(...args);
 window.previewMasterShopHero = (...args) => previewMasterShopHero(...args);
 window.saveMasterShop = (...args) => saveMasterShop(...args);
 window.deleteMasterShop = (...args) => deleteMasterShop(...args);
+window.deleteAllMasterShops = (...args) => deleteAllMasterShops(...args);
 
 window.closeZoomModal = (...args) => closeZoomModal(...args);
 window.zoomImage = (...args) => zoomImage(...args);
@@ -2652,6 +2653,75 @@ async function deleteMasterShop(shopId) {
     } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `shop_settings/${shopId}`);
         showToast(currentLang === 'ar' ? 'حدث خطأ أثناء حذف المتجر.' : 'Error deleting store.');
+    }
+}
+
+async function deleteAllMasterShops() {
+    if (!db) return;
+
+    if (SHOPS.length === 0) {
+        showToast(currentLang === 'ar' ? 'لا يوجد متاجر مسجلة لحذفها.' : 'No registered stores found to delete.');
+        return;
+    }
+
+    const firstConfirmMsg = currentLang === 'ar'
+        ? `🚨 تحذير خطير: هل أنت متأكد تمامًا من رغبتك في حذف جميع المتاجر المسجلة (${SHOPS.length}) وكل المنتجات التابعة لها وحسابات البائعين مجتمعة؟ لا يمكن التراجع عن هذا الإجراء الإطلاقي!`
+        : `🚨 CRITICAL WARNING: Are you sure you want to delete ALL registered stores (${SHOPS.length}), all of their associated products, and all seller accounts? This action cannot be undone!`;
+
+    if (!confirm(firstConfirmMsg)) return;
+
+    const secondConfirmInput = prompt(
+        currentLang === 'ar'
+            ? `لتأكيد الحذف الكامل والنهائي، يرجى كتابة "DELETE ALL":`
+            : `To confirm total permanent deletion, please type "DELETE ALL":`
+    );
+
+    if (secondConfirmInput !== "DELETE ALL") {
+        showToast(currentLang === 'ar' ? 'تم إلغاء العملية. لم يتم مطابقة رمز التأكيد.' : 'Operation cancelled. Confirmation phrase did not match.');
+        return;
+    }
+
+    try {
+        showToast(currentLang === 'ar' ? 'جاري حذف جميع المتاجر...' : 'Deleting all stores...');
+
+        const promises = SHOPS.map(async (shop) => {
+            const shopId = shop.id;
+
+            // 1. Delete the shop_settings document
+            await deleteDoc(doc(db, "shop_settings", shopId)).catch(console.error);
+
+            // 2. Delete the associated user account if we have a phone
+            const phone = shop.phone || shopSettingsOverrides[shopId]?.phone;
+            if (phone) {
+                await deleteDoc(doc(db, "users", phone)).catch(console.error);
+            }
+
+            // 3. Delete any products under the inventory matching the shopId
+            const q = query(collection(db, "inventory"), where("shopId", "==", shopId));
+            const pSnapshot = await getDocs(q).catch(() => null);
+            if (pSnapshot) {
+                const deletePromises = [];
+                pSnapshot.forEach(doc => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                if (deletePromises.length > 0) {
+                    await Promise.all(deletePromises).catch(console.error);
+                }
+            }
+
+            // Update local memory data overrides cache
+            if (shopSettingsOverrides[shopId]) {
+                delete shopSettingsOverrides[shopId];
+            }
+        });
+
+        await Promise.all(promises);
+
+        showToast(currentLang === 'ar' ? 'تم حذف جميع المتاجر والمنتجات بنجاح.' : 'All stores and associated products deleted successfully.');
+        renderMasterShops();
+    } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `shop_settings/all`);
+        showToast(currentLang === 'ar' ? 'حدث خطأ أثناء حذف المتاجر.' : 'Error deleting all stores.');
     }
 }
 
