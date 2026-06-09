@@ -513,7 +513,7 @@
     </div>
 
     <!-- CROPPER MODAL -->
-    <div id="crop-modal" class="modal hidden">
+    <div id="crop-modal" class="modal hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="closeCropModal()">&times;</span>
             <h3>Adjust Photo</h3>
@@ -577,6 +577,7 @@
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label id="lbl-m-shop-id" style="font-size: 12px; color: #aaa; font-weight: 500;">Store URL ID (Lowercase, e.g. chic-boutique) / معرف المتجر</label>
                     <input type="text" id="m-shop-id" placeholder="chic-boutique" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 14px;">
+                    <div id="m-shop-id-helper" style="font-size: 11px; color: #888; margin-top: 2px; font-family: monospace;"></div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label id="lbl-m-shop-name" style="font-size: 12px; color: #aaa; font-weight: 500;">Store Name / اسم المتجر</label>

@@ -446,6 +446,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof setupAdminSelect === 'function') {
             setupAdminSelect();
         }
+
+        // Live Master Shop Inputs Optimization
+        const mShopIdInput = document.getElementById('m-shop-id');
+        const mShopIdHelper = document.getElementById('m-shop-id-helper');
+        if (mShopIdInput) {
+            const updateIdHelper = () => {
+                let val = mShopIdInput.value.toLowerCase();
+                // Squeeze out invalid characters live
+                val = val.replace(/\s+/g, '-');
+                val = val.replace(/[^a-z0-9_-]/g, '');
+                val = val.replace(/-+/g, '-');
+                
+                if (mShopIdInput.value !== val) {
+                    mShopIdInput.value = val;
+                }
+                
+                if (mShopIdHelper) {
+                    if (val) {
+                        mShopIdHelper.innerHTML = currentLang === 'ar' 
+                            ? `رابط المتجر: <strong style="color: #4cd137;">${val}</strong>`
+                            : `Store link path: <strong style="color: #4cd137;">${val}</strong>`;
+                    } else {
+                        mShopIdHelper.innerHTML = currentLang === 'ar' 
+                            ? '<span style="color: #ea8685;">يرجى كتابة معرف فريد للرابط</span>'
+                            : '<span style="color: #ea8685;">Please type a unique identifier for the URL</span>';
+                    }
+                }
+            };
+            mShopIdInput.addEventListener('input', updateIdHelper);
+            mShopIdInput.style.fontFamily = 'monospace';
+            
+            // Initial call to set placeholder/state
+            setTimeout(updateIdHelper, 100);
+        }
+
+        // Add Enter key listeners to master shop dialog inputs to save easily
+        ['m-shop-id', 'm-shop-name', 'm-shop-phone', 'm-shop-pass'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveMasterShop();
+                    }
+                });
+            }
+        });
     } catch (e) {
         console.error("Error during app initialization:", e);
     } finally {
@@ -866,6 +913,10 @@ function initSettingsListener() {
 
         if (currentView === 'marketplace') {
             initMarketplace();
+        }
+
+        if (currentView === 'master') {
+            renderMasterShops();
         }
 
         if (currentView === 'shop' && activeShop) {
@@ -2411,6 +2462,10 @@ async function openMasterShopModal(mode, shopId = '') {
             currentMasterHero = currentHero;
         }
     }
+
+    if (idInput) {
+        idInput.dispatchEvent(new Event('input'));
+    }
 }
 
 function closeMasterShopModal() {
@@ -2456,6 +2511,13 @@ async function saveMasterShop() {
         return;
     }
 
+    // Since normalizePhone returns 964... if it is empty or invalid, let's make sure they entered a real number.
+    // Normalized prefix 964 + at least 9 digits (total 12 minimum for Iraqi number)
+    if (phone.length < 10) {
+        showToast(currentLang === 'ar' ? 'يرجى إدخال رقم هاتف صالح (مثال: 07701234567)' : 'Please enter a valid phone number (e.g. 07701234567).');
+        return;
+    }
+
     const isIdValid = /^[a-z0-9_-]+$/.test(shopId);
     if (!isIdValid) {
         showToast(currentLang === 'ar' ? 'معرف غير صالح' : 'Invalid ID. Use lowercase letters, numbers, and dashes only.');
@@ -2463,6 +2525,7 @@ async function saveMasterShop() {
     }
 
     const btn = document.getElementById('btn-m-save-shop');
+    if (!btn) return;
     const originalText = btn.innerText;
     btn.disabled = true;
     btn.innerText = currentLang === 'ar' ? 'جاري الحفظ...' : 'Saving...';
@@ -2478,11 +2541,16 @@ async function saveMasterShop() {
             updatedAt: serverTimestamp()
         };
 
-        if (currentMasterShopLogo) {
-            shopSettingsData.logo = currentMasterShopLogo;
-        }
-        if (currentMasterHero) {
-            shopSettingsData.hero = currentMasterHero;
+        if (mode === 'add') {
+            shopSettingsData.logo = currentMasterShopLogo || "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200";
+            shopSettingsData.hero = currentMasterHero || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200";
+        } else {
+            if (currentMasterShopLogo) {
+                shopSettingsData.logo = currentMasterShopLogo;
+            }
+            if (currentMasterHero) {
+                shopSettingsData.hero = currentMasterHero;
+            }
         }
 
         // Save shop settings
