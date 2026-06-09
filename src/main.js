@@ -57,6 +57,7 @@ window.closeMasterShopModal = (...args) => closeMasterShopModal(...args);
 window.previewMasterShopLogo = (...args) => previewMasterShopLogo(...args);
 window.previewMasterShopHero = (...args) => previewMasterShopHero(...args);
 window.saveMasterShop = (...args) => saveMasterShop(...args);
+window.deleteMasterShop = (...args) => deleteMasterShop(...args);
 
 window.closeZoomModal = (...args) => closeZoomModal(...args);
 window.zoomImage = (...args) => zoomImage(...args);
@@ -2379,6 +2380,7 @@ function renderMasterShops() {
                     </select>
                     <button class="btn-primary" onclick="updateShopCategory('${shop.id}')" style="padding: 8px 15px; font-size: 12px; background: #333; color: #fff; border-radius: 8px; border: 1px solid #444; cursor: pointer;">Save Cat</button>
                     <button class="btn-primary" onclick="openMasterShopModal('edit', '${shop.id}')" style="padding: 8px 15px; font-size: 12px; background: #fff; color: #000; border-radius: 8px; border: none; font-weight: 500; cursor: pointer;">Edit / Photos</button>
+                    <button class="btn-primary" onclick="deleteMasterShop('${shop.id}')" style="padding: 8px 15px; font-size: 12px; background: #e74c3c; color: #fff; border-radius: 8px; border: none; font-weight: 500; cursor: pointer;">Delete / حذف</button>
                 </div>
             </div>
         `;
@@ -2603,6 +2605,53 @@ async function deleteOrderByID(orderId) {
         await deleteDoc(doc(db, "orders", orderId));
     } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+    }
+}
+
+async function deleteMasterShop(shopId) {
+    if (!db) return;
+    
+    const shop = SHOPS.find(s => s.id === shopId);
+    
+    const confirmMsg = currentLang === 'ar' 
+        ? `هل أنت متأكد تمامًا من رغبتك في حذف متجر "${shop?.name || shopId}" وكل المنتجات المرتبطة به وحساب البائع الخاص به؟ لا يمكن التراجع عن هذا الإجراء!`
+        : `Are you absolutely sure you want to delete the store "${shop?.name || shopId}", all of its associated products, and its seller account? This action cannot be undone!`;
+        
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+        showToast(currentLang === 'ar' ? 'جاري حذف المتجر...' : 'Deleting store...');
+        
+        // 1. Delete the shop_settings document
+        await deleteDoc(doc(db, "shop_settings", shopId));
+        
+        // 2. Delete the associated user account if we have a phone
+        const phone = shop?.phone || shopSettingsOverrides[shopId]?.phone;
+        if (phone) {
+            await deleteDoc(doc(db, "users", phone));
+        }
+        
+        // 3. Delete any products under the inventory matching the shopId
+        const q = query(collection(db, "inventory"), where("shopId", "==", shopId));
+        const pSnapshot = await getDocs(q);
+        const deletePromises = [];
+        pSnapshot.forEach(doc => {
+            deletePromises.push(deleteDoc(doc.ref));
+        });
+        if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+        }
+        
+        // Update local memory data overrides cache
+        if (shopSettingsOverrides[shopId]) {
+            delete shopSettingsOverrides[shopId];
+        }
+        
+        showToast(currentLang === 'ar' ? 'تم حذف المتجر وجميع المنتجات المرتبطة به بنجاح.' : 'Store and all associated products deleted successfully.');
+        renderMasterShops();
+    } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `shop_settings/${shopId}`);
+        showToast(currentLang === 'ar' ? 'حدث خطأ أثناء حذف المتجر.' : 'Error deleting store.');
     }
 }
 
