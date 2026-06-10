@@ -43,6 +43,7 @@ window.previewStoreImage = (...args) => previewStoreImage(...args);
 window.removeStoreImage = (...args) => removeStoreImage(...args);
 window.saveStoreSettings = (...args) => saveStoreSettings(...args);
 window.togglePass = (...args) => togglePass(...args);
+window.refreshUserProfile = (...args) => refreshUserProfile(...args);
 window.switchMasterTab = (...args) => switchMasterTab(...args);
 window.updateShopCategory = (...args) => updateShopCategory(...args);
 window.applyCrop = (...args) => applyCrop(...args);
@@ -414,19 +415,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. Recovery of states
         if (loggedInUser) {
             updateProfileUI();
+            refreshUserProfile();
         }
 
         if (loggedInShopId) {
-            const id = loggedInShopId; 
-            const shop = SHOPS.find(s => s.id === id);
-            if (shop) {
-                const sellerTools = document.getElementById('seller-tools');
-                if (sellerTools) sellerTools.classList.remove('hidden');
-                renderAdminInventory();
-            } else {
-                loggedInShopId = null;
-                localStorage.removeItem('aneeq_seller_id');
-            }
+            // Do not delete loggedInShopId immediately here because SHOPS has not finished loading asynchronously from Firestore
+            const sellerTools = document.getElementById('seller-tools');
+            if (sellerTools) sellerTools.classList.remove('hidden');
+            renderAdminInventory();
         }
 
         if (isMasterLoggedIn) {
@@ -868,6 +864,10 @@ function showView(viewId, skipState = false) {
     const target = document.getElementById(`view-${viewId}`);
     if(target) target.classList.remove('hidden');
     
+    if(viewId === 'account') {
+        refreshUserProfile();
+    }
+    
     if(viewId === 'basket') {
         handleBasketAutoTrack();
     }
@@ -919,10 +919,25 @@ function initSettingsListener() {
         // Update UI dynamically
         if (loggedInShopId) {
             const shop = SHOPS.find(s => s.id === loggedInShopId);
-            const displayName = shopSettingsOverrides[loggedInShopId]?.name || shop?.name;
-            const el = document.getElementById('admin-store-name');
-            if (el) el.innerText = displayName;
-            updateProfileUI();
+            if (shop) {
+                const sellerTools = document.getElementById('seller-tools');
+                if (sellerTools) sellerTools.classList.remove('hidden');
+                renderAdminInventory();
+                
+                const displayName = shopSettingsOverrides[loggedInShopId]?.name || shop?.name;
+                const el = document.getElementById('admin-store-name');
+                if (el) el.innerText = displayName;
+                updateProfileUI();
+            } else {
+                // Only clear if tempShops list actually has elements (safeguarding empty state loads)
+                if (tempShops.length > 0) {
+                    console.log("Logged in shop not found in active shops, logging out...");
+                    loggedInShopId = null;
+                    localStorage.removeItem('aneeq_seller_id');
+                    const sellerTools = document.getElementById('seller-tools');
+                    if (sellerTools) sellerTools.classList.add('hidden');
+                }
+            }
         }
 
         // Always render updated shops to both views to ensure immediate dynamic removal/syncing
@@ -1651,7 +1666,11 @@ function updateProfileUI() {
         document.getElementById('profile-location').value = loggedInUser.location;
     }
 
+    const sellerTools = document.getElementById('seller-tools');
     if (loggedInShopId) {
+        if (sellerTools) sellerTools.classList.remove('hidden');
+        renderAdminInventory();
+
         const settings = shopSettingsOverrides[loggedInShopId] || {};
         const shop = SHOPS.find(s => s.id === loggedInShopId);
         
@@ -1661,7 +1680,7 @@ function updateProfileUI() {
         
         document.getElementById('store-name-input').value = currentName;
         document.getElementById('store-phone-input').value = loggedInUser.phone;
-        document.getElementById('store-pass-input').value = loggedInUser.password;
+        document.getElementById('store-pass-input').value = loggedInUser.password || '';
         
         const lpc = document.getElementById('logo-preview-container');
         const hpc = document.getElementById('hero-preview-container');
@@ -1678,6 +1697,43 @@ function updateProfileUI() {
             if (settings.hero) removeHeroBtn.classList.remove('hidden');
             else removeHeroBtn.classList.add('hidden');
         }
+    } else {
+        if (sellerTools) sellerTools.classList.add('hidden');
+    }
+}
+
+async function refreshUserProfile() {
+    if (!db || !loggedInUser || !loggedInUser.phone) return;
+    try {
+        const userDoc = await getDoc(doc(db, "users", loggedInUser.phone));
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            console.log("Profile auto-refreshed from DB:", data);
+            
+            // Sync loggedInUser and localStorage
+            loggedInUser = { ...loggedInUser, ...data };
+            localStorage.setItem('aneeq_user', JSON.stringify(loggedInUser));
+            
+            // Check if they are now a seller or if shopId was updated/added
+            if (data.shopId) {
+                loggedInShopId = data.shopId;
+                localStorage.setItem('aneeq_seller_id', loggedInShopId);
+            } else {
+                // Also double check if SHOPS has them
+                const sellerShop = SHOPS.find(s => s.phone === loggedInUser.phone);
+                if (sellerShop) {
+                    loggedInShopId = sellerShop.id;
+                    localStorage.setItem('aneeq_seller_id', loggedInShopId);
+                    // Update user doc in Firebase too
+                    updateDoc(doc(db, "users", loggedInUser.phone), { shopId: loggedInShopId }).catch(console.error);
+                }
+            }
+            
+            // Render the updated profile
+            updateProfileUI();
+        }
+    } catch (e) {
+        console.error("Error refreshing user profile:", e);
     }
 }
 
