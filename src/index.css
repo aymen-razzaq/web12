@@ -1143,3 +1143,159 @@ input[type="file"] {
     }
 }
 
+/* Optimized Shop Profile Header (Store name & details separated from Hero photo) */
+.shop-profile-header {
+    background: #ffffff;
+    border-radius: 24px;
+    overflow: hidden;
+    margin-bottom: 35px;
+    border: 1px solid var(--border, #eaeaea);
+    box-shadow: 0 4px 20px rgba(179, 139, 109, 0.03);
+}
+
+.shop-hero-banner {
+    position: relative;
+    width: 100%;
+    height: 340px; /* Elevated height for rich details display */
+    overflow: hidden;
+    background: #14110f; /* Midnight black-coffee canvas background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Base layer: High-intensity blurred ambient copy of the hero to fill letterbox gaps beautifully */
+.shop-hero-bg-blur {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(25px) brightness(0.4) saturate(1.2);
+    opacity: 0.8;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Foreground layer: Perfect fully-contained original image layout */
+.shop-hero-img {
+    position: relative;
+    z-index: 2;
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Exact requested match: Show full image completely without cropping */
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shop-hero-banner:hover .shop-hero-img {
+    transform: scale(1.01);
+}
+
+/* Sophisticated atmospheric overlay over the contained canvas */
+.shop-hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(0,0,0,0) 40%, rgba(0,0,0,0.3) 100%);
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* Separated Info Row: Centered and well-padded. Pushes content down nicely */
+.shop-info-bar {
+    display: flex;
+    align-items: center;
+    padding: 40px; /* Generous breathing padding for premium spatial feel */
+    position: relative;
+    z-index: 10;
+    gap: 32px;
+    flex-wrap: wrap;
+    background: #ffffff;
+}
+
+.shop-logo-container {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 6px solid #ffffff;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: -105px; /* Pulls only the logo up to overlap the hero, keeping name separated */
+}
+
+.shop-logo-container:hover {
+    transform: translateY(-6px);
+}
+
+.shop-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.shop-title-details {
+    flex: 1;
+    min-width: 280px;
+    padding-top: 12px; /* Generates more deliberate spacing so title feels airy and far from hero edge */
+}
+
+/* Elegant, fully separate, clear typography for the Store Name */
+.shop-name-p {
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text, #2D241E);
+    margin: 0 !important;
+    font-family: var(--font-serif), 'Cairo', serif; /* Nice paired serif-ar font stack */
+    line-height: 1.15;
+    letter-spacing: -0.8px;
+    text-shadow: none !important;
+}
+
+[dir="rtl"] .shop-name-p {
+    letter-spacing: 0;
+}
+
+/* Responsiveness settings for Mobile viewports */
+@media (max-width: 768px) {
+    .shop-hero-banner {
+        height: 200px; /* More compact on mobile */
+    }
+    
+    .shop-info-bar {
+        padding: 30px 20px;
+        justify-content: center;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .shop-logo-container {
+        width: 110px;
+        height: 110px;
+        border-width: 5px;
+        margin-top: -85px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .shop-title-details {
+        padding-top: 5px;
+    }
+    
+    .shop-name-p {
+        font-size: 28px;
+        text-align: center;
+    }
+}
+

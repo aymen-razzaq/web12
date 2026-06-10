@@ -47,6 +47,8 @@ window.switchMasterTab = (...args) => switchMasterTab(...args);
 window.updateShopCategory = (...args) => updateShopCategory(...args);
 window.applyCrop = (...args) => applyCrop(...args);
 window.closeCropModal = (...args) => closeCropModal(...args);
+window.zoomCropper = (...args) => zoomCropper(...args);
+window.rotateCropper = (...args) => rotateCropper(...args);
 window.editProduct = (...args) => editProduct(...args);
 window.saveProductEdit = (...args) => saveProductEdit(...args);
 window.closeProductEditModal = (...args) => closeProductEditModal(...args);
@@ -883,13 +885,23 @@ function showView(viewId, skipState = false) {
 function initSettingsListener() {
     if (!db) return;
     onSnapshot(collection(db, "shop_settings"), (snapshot) => {
+        // Clear old settings overrides to prevent deleted shops lingering in memory cache
+        for (const key in shopSettingsOverrides) {
+            delete shopSettingsOverrides[key];
+        }
+
         const tempShops = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.shopId) {
-                shopSettingsOverrides[data.shopId] = data;
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const sId = data.shopId || docSnap.id;
+            if (sId) {
+                // Keep overrides structure up-to-date
+                shopSettingsOverrides[sId] = {
+                    ...data,
+                    shopId: sId
+                };
                 tempShops.push({
-                    id: data.shopId,
+                    id: sId,
                     name: data.name || "Unnamed Shop",
                     phone: data.phone || "",
                     pass: data.pass || data.password || "",
@@ -913,22 +925,32 @@ function initSettingsListener() {
             updateProfileUI();
         }
 
-        if (currentView === 'marketplace') {
-            initMarketplace();
-        }
-
-        if (currentView === 'master') {
-            renderMasterShops();
-        }
+        // Always render updated shops to both views to ensure immediate dynamic removal/syncing
+        initMarketplace();
+        renderMasterShops();
 
         if (currentView === 'shop' && activeShop) {
-            const heroImage = shopSettingsOverrides[activeShop.id]?.hero || activeShop.hero;
-            const shopName = shopSettingsOverrides[activeShop.id]?.name || activeShop.name;
-            const heroEl = document.querySelector('#view-shop .hero');
-            if (heroEl) {
-                heroEl.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${heroImage}')`;
-                const h1 = heroEl.querySelector('h1');
-                if (h1) h1.innerText = shopName;
+            const existsInShops = SHOPS.find(s => s.id === activeShop.id);
+            const shopCat = existsInShops ? (shopSettingsOverrides[activeShop.id]?.category || existsInShops.category) : null;
+            
+            // If the store is deleted or uncategorized (hidden), boot the user back to marketplace safely
+            if (!existsInShops || !shopCat) {
+                activeShop = null;
+                showView('marketplace');
+            } else {
+                const heroImage = shopSettingsOverrides[activeShop.id]?.hero || activeShop.hero;
+                const shopLogo = shopSettingsOverrides[activeShop.id]?.logo || activeShop.logo;
+                const shopName = shopSettingsOverrides[activeShop.id]?.name || activeShop.name;
+                
+                const heroImgEl = document.querySelector('#view-shop .shop-hero-img');
+                const heroBgBlurEl = document.querySelector('#view-shop .shop-hero-bg-blur');
+                const logoImgEl = document.querySelector('#view-shop .shop-logo-img');
+                const nameEl = document.querySelector('#view-shop .shop-name-p');
+                
+                if (heroImgEl) heroImgEl.src = heroImage;
+                if (heroBgBlurEl) heroBgBlurEl.src = heroImage;
+                if (logoImgEl) logoImgEl.src = shopLogo;
+                if (nameEl) nameEl.innerText = shopName;
             }
         }
     }, (error) => {
@@ -992,12 +1014,14 @@ function renderProductFeed() {
     const q = query(collection(db, "inventory"));
     productFeedUnsubscribe = onSnapshot(q, (snapshot) => {
         let allProducts = [];
-        snapshot.forEach(doc => {
-            const p = { ...doc.data(), id: doc.id };
+        snapshot.forEach(docSnap => {
+            const p = { ...docSnap.data(), id: docSnap.id };
             PRODUCT_CACHE[p.id] = p;
             if(currentCategory === 'all' || p.category === currentCategory) {
                 const shop = SHOPS.find(s => s.id === p.shopId);
-                if(shop) {
+                const shopCat = shop ? (shopSettingsOverrides[p.shopId]?.category || shop.category) : null;
+                // Only show products whose shop is active and categorized (not hidden)
+                if(shop && shopCat) {
                     const shopName = shopSettingsOverrides[p.shopId]?.name || shop.name;
                     const shopLogo = shopSettingsOverrides[p.shopId]?.logo || shop.logo;
                     allProducts.push({ ...p, shopName, shopLogo });
@@ -1066,9 +1090,24 @@ function openShop(shopId) {
     const shopName = shopSettingsOverrides[shopId]?.name || shop?.name;
     
     document.getElementById('shop-header-container').innerHTML = `
-        <div class="hero" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${heroImage}') center/cover; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
-            <img src="${shopLogo}" style="width: 80px; height: 80px; border-radius: 20px; border: 2px solid #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
-            <h1>${shopName}</h1>
+        <div class="shop-profile-header">
+            <!-- Hero Banner Container (Optimized Layout showing full image) -->
+            <div class="shop-hero-banner">
+                <img class="shop-hero-bg-blur" src="${heroImage}" alt="">
+                <img class="shop-hero-img" src="${heroImage}" alt="${shopName} Hero Banner">
+                <div class="shop-hero-overlay"></div>
+            </div>
+            
+            <!-- Shop Info Overlay-free Bar -->
+            <div class="shop-info-bar">
+                <div class="shop-logo-container">
+                    <img class="shop-logo-img" src="${shopLogo}" alt="${shopName} Logo">
+                </div>
+                
+                <div class="shop-title-details">
+                    <h1 class="shop-name-p">${shopName}</h1>
+                </div>
+            </div>
         </div>
     `;
     
@@ -1767,25 +1806,56 @@ function openCropper(imageSrc, type) {
     image.src = imageSrc;
     
     modal.classList.remove('hidden');
+    modal.style.display = 'flex'; // Explicit flex for showing
     
-    if (cropperInstance) cropperInstance.destroy();
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
     
     // Set aspect ratio based on type
-    let aspectRatio = 1; // Default square (logo/product)
-    if (type === 'hero') aspectRatio = 16 / 9; // Hero is wide
+    let aspectRatio = 1; // Default square (logo/product/masterLogo)
+    if (type === 'hero' || type === 'masterHero') {
+        aspectRatio = 16 / 7; // Enhanced wide ratio for high-end wide headers
+    }
     
     cropperInstance = new Cropper(image, {
         aspectRatio: aspectRatio,
-        viewMode: 2,
-        autoCropArea: 1,
+        viewMode: 1, // Focuses cropped box constraint on the image bounds beautifully
+        autoCropArea: 0.9,
+        background: false,
+        responsive: true,
+        restore: false,
+        guides: true,
+        center: true,
+        highlight: false,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false
     });
 }
 
 function closeCropModal() {
-    document.getElementById('crop-modal').classList.add('hidden');
+    const modal = document.getElementById('crop-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
     if (cropperInstance) {
         cropperInstance.destroy();
         cropperInstance = null;
+    }
+}
+
+function zoomCropper(ratio) {
+    if (cropperInstance) {
+        cropperInstance.zoom(ratio);
+    }
+}
+
+function rotateCropper(degree) {
+    if (cropperInstance) {
+        cropperInstance.rotate(degree);
     }
 }
 
@@ -1982,7 +2052,7 @@ function renderProductPreviews() {
     preview.innerHTML = currentBase64Images.map((img, idx) => `
         <div style="position: relative; width: 80px; height: 80px;">
             <img src="${img}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;">
-            <button onclick="removeProductPreviewImage(${idx})" style="position: absolute; -5px; -5px; background: #ff4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;">&times;</button>
+            <button onclick="removeProductPreviewImage(${idx})" style="position: absolute; top: -5px; right: -5px; background: #ff4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">&times;</button>
             ${idx === 0 ? '<span style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 8px; text-align: center; border-radius: 0 0 8px 8px;">Main</span>' : ''}
         </div>
     `).join('');
@@ -2620,39 +2690,61 @@ async function deleteMasterShop(shopId) {
         
     if (!confirm(confirmMsg)) return;
     
+    // 1. Instantly update the user interface by removing the store from the local states
+    const idx = SHOPS.findIndex(s => s.id === shopId);
+    if (idx !== -1) {
+        SHOPS.splice(idx, 1);
+    }
+    if (shopSettingsOverrides[shopId]) {
+        delete shopSettingsOverrides[shopId];
+    }
+    
+    // Immediately redirect & logout if currently viewing the deleted shop or logged into it
+    if (activeShop && activeShop.id === shopId) {
+        activeShop = null;
+        if (currentView === 'shop') {
+            showView('marketplace');
+        }
+    }
+    if (loggedInShopId === shopId) {
+        logout();
+    }
+    
+    // Render immediate UI feedback
+    renderMasterShops();
+    initMarketplace();
+    
     try {
-        showToast(currentLang === 'ar' ? 'جاري حذف المتجر...' : 'Deleting store...');
+        showToast(currentLang === 'ar' ? 'جاري حذف المتجر من قاعدة البيانات...' : 'Deleting store from database...');
         
-        // 1. Delete the shop_settings document
+        // 2. Perform the actual Firestore deletion requests asynchronously
         await deleteDoc(doc(db, "shop_settings", shopId));
         
-        // 2. Delete the associated user account if we have a phone
+        // Delete the associated user account if we have a phone
         const phone = shop?.phone || shopSettingsOverrides[shopId]?.phone;
         if (phone) {
             await deleteDoc(doc(db, "users", phone));
         }
         
-        // 3. Delete any products under the inventory matching the shopId
+        // Delete any products under the inventory matching the shopId
         const q = query(collection(db, "inventory"), where("shopId", "==", shopId));
         const pSnapshot = await getDocs(q);
         const deletePromises = [];
-        pSnapshot.forEach(doc => {
-            deletePromises.push(deleteDoc(doc.ref));
+        pSnapshot.forEach(docSnap => {
+            deletePromises.push(deleteDoc(docSnap.ref));
         });
         if (deletePromises.length > 0) {
             await Promise.all(deletePromises);
         }
         
-        // Update local memory data overrides cache
-        if (shopSettingsOverrides[shopId]) {
-            delete shopSettingsOverrides[shopId];
-        }
-        
         showToast(currentLang === 'ar' ? 'تم حذف المتجر وجميع المنتجات المرتبطة به بنجاح.' : 'Store and all associated products deleted successfully.');
+        
+        // Ensure final UI is synced with any late-arriving snapshots
         renderMasterShops();
+        initMarketplace();
     } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `shop_settings/${shopId}`);
-        showToast(currentLang === 'ar' ? 'حدث خطأ أثناء حذف المتجر.' : 'Error deleting store.');
+        showToast(currentLang === 'ar' ? 'حدث خطأ أثناء حذف المتجر من الخادم.' : 'Error fully deleting store from server.');
     }
 }
 
@@ -2681,44 +2773,62 @@ async function deleteAllMasterShops() {
         return;
     }
 
-    try {
-        showToast(currentLang === 'ar' ? 'جاري حذف جميع المتاجر...' : 'Deleting all stores...');
+    // 1. Instantly empty SHOPS locally to update the user interface immediately
+    const shopsToDelete = [...SHOPS];
+    SHOPS.length = 0;
+    for (const key in shopSettingsOverrides) {
+        delete shopSettingsOverrides[key];
+    }
 
-        const promises = SHOPS.map(async (shop) => {
+    // Reset customer shop view & seller session safely
+    activeShop = null;
+    if (currentView === 'shop') {
+        showView('marketplace');
+    }
+    if (loggedInShopId) {
+        logout();
+    }
+
+    // Render immediate UI feedback
+    renderMasterShops();
+    initMarketplace();
+
+    try {
+        showToast(currentLang === 'ar' ? 'جاري حذف جميع المتاجر من قاعدة البيانات...' : 'Deleting all stores from database...');
+
+        const promises = shopsToDelete.map(async (shop) => {
             const shopId = shop.id;
 
-            // 1. Delete the shop_settings document
+            // Delete the shop_settings document
             await deleteDoc(doc(db, "shop_settings", shopId)).catch(console.error);
 
-            // 2. Delete the associated user account if we have a phone
+            // Delete the associated user account if we have a phone
             const phone = shop.phone || shopSettingsOverrides[shopId]?.phone;
             if (phone) {
                 await deleteDoc(doc(db, "users", phone)).catch(console.error);
             }
 
-            // 3. Delete any products under the inventory matching the shopId
+            // Delete any products under the inventory matching the shopId
             const q = query(collection(db, "inventory"), where("shopId", "==", shopId));
             const pSnapshot = await getDocs(q).catch(() => null);
             if (pSnapshot) {
                 const deletePromises = [];
-                pSnapshot.forEach(doc => {
-                    deletePromises.push(deleteDoc(doc.ref));
+                pSnapshot.forEach(docSnap => {
+                    deletePromises.push(deleteDoc(docSnap.ref));
                 });
                 if (deletePromises.length > 0) {
                     await Promise.all(deletePromises).catch(console.error);
                 }
-            }
-
-            // Update local memory data overrides cache
-            if (shopSettingsOverrides[shopId]) {
-                delete shopSettingsOverrides[shopId];
             }
         });
 
         await Promise.all(promises);
 
         showToast(currentLang === 'ar' ? 'تم حذف جميع المتاجر والمنتجات بنجاح.' : 'All stores and associated products deleted successfully.');
+        
+        // Ensure final interface matches
         renderMasterShops();
+        initMarketplace();
     } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `shop_settings/all`);
         showToast(currentLang === 'ar' ? 'حدث خطأ أثناء حذف المتاجر.' : 'Error deleting all stores.');
